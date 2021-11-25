@@ -8,6 +8,7 @@ from snippets.models import Snippet
 from snippets.serializers import SnippetSerializer, SnippetModelSerializer, UserSerializer
 
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.parsers import JSONParser
 from rest_framework.decorators import api_view
 from rest_framework import status
@@ -15,12 +16,65 @@ from rest_framework.views import APIView
 from rest_framework import mixins
 from rest_framework import generics
 from rest_framework import permissions
+from rest_framework import renderers
 from .permissions import IsOwnerOrReadOnly
+
+
+class SnippetHighlight(generics.GenericAPIView):
+    queryset = Snippet.objects.all()
+    renderer_classes = [renderers.StaticHTMLRenderer]
+
+    def get(self, request, *args, **kwargs):
+        snippet = self.get_object()
+        return Response(snippet.highlighted)
+
+
+
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        'users': reverse('user_list', request=request, format=format),
+        'snippets': reverse('snippet_list', request=request, format=format),
+
+        'snippet_class': reverse('snippet_class', request=request, format=format),
+        
+        'snippet_generic_class': reverse('snippet_genericclass', request=request, format=format),
+        
+        'snippet_full_generic_class': reverse('snippet_fullgenericclass', request=request, format=format),
+
+        'users_class': reverse('user_class_list', request=request, format=format),
+
+    })
+
+
+@api_view(['GET', 'POST'])
+@csrf_exempt
+def user_list(request):
+    """
+    List all code snippets, or create a new snippet.
+    """
+    # FOR show all objects from database
+    if request.method == 'GET':
+        user = User.objects.all()
+        serializer = UserSerializer(user, many=True)
+        return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
+    
+    # for saving an object
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = UserSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse({'Job Done': True}, status=status.HTTP_201_CREATED)
+        return JsonResponse({'Job Done': False}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 """
     FUNCTION BASE VIEWS TO WORK WITH REST API   this views are very old methods
 """
+
 @api_view(['GET', 'POST'])
 @csrf_exempt
 def snippet_list(request):
