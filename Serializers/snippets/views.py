@@ -1,16 +1,21 @@
+from django.contrib.auth.models import User
 from django.http import HttpResponse, JsonResponse
-from rest_framework.response import Response
+from django.http import Http404
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
-from rest_framework.utils import serializer_helpers
+from django.contrib.auth.models import User
+
 from snippets.models import Snippet
-from snippets.serializers import SnippetSerializer, SnippetModelSerializer
+from snippets.serializers import SnippetSerializer, SnippetModelSerializer, UserSerializer
+
+from rest_framework.response import Response
+from rest_framework.parsers import JSONParser
+from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from django.http import Http404
 from rest_framework import mixins
 from rest_framework import generics
+from rest_framework import permissions
+from .permissions import IsOwnerOrReadOnly
 
 
 """
@@ -91,6 +96,8 @@ class SnippetListView(APIView):
     """
     List all snippets, or create a new snippet.
     """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
     def get(self, request, format=None):
         snippets = Snippet.objects.all()
         serializer = SnippetSerializer(snippets, many=True)
@@ -103,12 +110,15 @@ class SnippetListView(APIView):
             return Response({'Job Done Response': True,'data_id': serializer.id}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
 class SnippetDetailView(APIView):
     """
     Retrieve, update or delete a snippet instance.
     """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def get_object(self, pk):
         try:
@@ -144,6 +154,7 @@ class SnippetListGenericView(mixins.ListModelMixin, mixins.CreateModelMixin, gen
     """
     List all snippets, or create a new snippet.
     """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
 
@@ -153,12 +164,14 @@ class SnippetListGenericView(mixins.ListModelMixin, mixins.CreateModelMixin, gen
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class SnippetDetailGenericView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.GenericAPIView):
     """
     Retrieve, update or delete a snippet instance.
     """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
 
@@ -180,7 +193,27 @@ class SnippetGenericListCreateView(generics.ListCreateAPIView):
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
 
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 class SnippetGenericRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+'''
+    here we get a list of users and the id of related snippets
+'''
+
+class UserList(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+class UserDetail(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
