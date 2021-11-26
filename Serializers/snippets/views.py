@@ -17,6 +17,8 @@ from rest_framework import mixins
 from rest_framework import generics
 from rest_framework import permissions
 from rest_framework import renderers
+from rest_framework.permissions import IsAuthenticated  # <-- Here
+
 from .permissions import IsOwnerOrReadOnly
 
 
@@ -150,7 +152,7 @@ class SnippetListView(APIView):
     """
     List all snippets, or create a new snippet.
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
 
     def get(self, request, format=None):
         snippets = Snippet.objects.all()
@@ -172,7 +174,7 @@ class SnippetDetailView(APIView):
     """
     Retrieve, update or delete a snippet instance.
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
 
     def get_object(self, pk):
         try:
@@ -208,7 +210,7 @@ class SnippetListGenericView(mixins.ListModelMixin, mixins.CreateModelMixin, gen
     """
     List all snippets, or create a new snippet.
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
 
@@ -225,7 +227,7 @@ class SnippetDetailGenericView(mixins.RetrieveModelMixin, mixins.UpdateModelMixi
     """
     Retrieve, update or delete a snippet instance.
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
 
@@ -247,7 +249,7 @@ class SnippetGenericListCreateView(generics.ListCreateAPIView):
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -256,7 +258,7 @@ class SnippetGenericRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIV
 
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
 
 '''
     here we get a list of users and the id of related snippets
@@ -270,4 +272,4 @@ class UserList(generics.ListAPIView):
 class UserDetail(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly, IsAuthenticated]
